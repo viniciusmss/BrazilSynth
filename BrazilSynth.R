@@ -88,7 +88,7 @@ df_quick <- df_transformed %>%
   group_by(`Country Name`) %>%
   summarise_if(.predicate = function(x) is.numeric(x),
                .funs = c(mean = "mean"), na.rm = TRUE)
-View(df_quick)
+# View(df_quick)
 
 ########################################
 ####### BRANCHING THE DATA #############
@@ -132,118 +132,124 @@ df_analysis2.BoP <- as.data.frame(df_analysis2.BoP)
 df_analysis2.2010 <- as.data.frame(df_analysis2.2010) 
 
 # Logging exports
-df_analysis2.2010$`Exports of goods and services (constant 2010 US$, per capita)` <- 
-  log(df_analysis2.2010$`Exports of goods and services (constant 2010 US$, per capita)`)
+# df_analysis2.2010$`Exports of goods and services (constant 2010 US$, per capita)` <- 
+#   log(df_analysis2.2010$`Exports of goods and services (constant 2010 US$, per capita)`)
 
 ########################################
 ####### SYNTHETIC CONTROLS #############
 ########################################
 
+### Specification Search - STEP 1
+### We try each of the four datasets, for each possible
+### time window of time.optimize.ssr.
+
+dfs_list <- list(df_analysis1.2010, df_analysis1.BoP, df_analysis2.2010, df_analysis2.BoP)
+
 storage <- list()
-for (i in 1:6) {
-  # Data setup
-  dataprep.out <-
-    dataprep(
-      foo = df_analysis2.BoP,
-      predictors    = c(6:8, 11:12, 14:19),
-      dependent     = 7,
-      unit.variable = 2,
-      time.variable = 3,
-      special.predictors = list(
-        list(5, 2010, c("mean")), # Education
-        list(4, 2008:2017, c("mean")), # Agriculture share
-        list(10, 2008:2017, c("mean")), # Industry share
-        list(9, 2012:2017, c("mean")) # Gross capital formation
-      ),
-      treatment.identifier = 4,
-      controls.identifier = sort(unique(df_analysis1.BoP$`Country Code`))[-4],
-      time.predictors.prior = 1995:2017,
-      time.optimize.ssr = (2009+i):2017,
-      unit.names.variable = 1,
-      time.plot = 1995:2017
-    )
-  
-  synth.out <- 
-    synth(
+for (i in 1:length(dfs_list)) {
+  for (j in 1:23) {
+    # Data setup
+    dataprep.out <-
+      dataprep(
+        foo = dfs_list[[i]],
+        predictors    = (1:ncol(dfs_list[[i]]))[-(1:3)],
+        dependent     = 7,
+        unit.variable = 2,
+        time.variable = 3,
+        treatment.identifier = 4,
+        controls.identifier = sort(unique(dfs_list[[i]]$`Country Code`))[-4],
+        time.predictors.prior = 1995:2017,
+        time.optimize.ssr = (1994+j):2017,
+        unit.names.variable = 1,
+        time.plot = 1995:2017
+      )
+    
+    synth.out <- 
+      synth(
+        data.prep.obj=dataprep.out,
+        Margin.ipop=.01,Sigf.ipop=7,Bound.ipop=6
+      )
+    
+    # Data prep for main model
+    dataprep.out <-
+      dataprep(
+        foo = dfs_list[[i]],
+        predictors    = (1:ncol(dfs_list[[i]]))[-(1:3)],
+        dependent     = 7,
+        unit.variable = 2,
+        time.variable = 3,
+        treatment.identifier = 4,
+        controls.identifier = sort(unique(dfs_list[[i]]$`Country Code`))[-4],
+        time.predictors.prior = 1995:2017,
+        time.optimize.ssr = 1995:2017,
+        unit.names.variable = 1,
+        time.plot = 1995:2017
+      )
+    
+    # fit main model with v from training model
+    synth.out <- synth(
       data.prep.obj=dataprep.out,
-      Margin.ipop=.005,Sigf.ipop=7,Bound.ipop=6
+      Margin.ipop=.01,Sigf.ipop=7,Bound.ipop=6, 
+      custom.v=as.numeric(synth.out$solution.v)
     )
-  
-  #View(synth.out$solution.v)
-  
-  # Data prep for main model
-  dataprep.out <-
-    dataprep(
-      foo = df_analysis2.BoP,
-      predictors    = c(6:8, 11:12, 14:19),
-      dependent     = 7,
-      unit.variable = 2,
-      time.variable = 3,
-      special.predictors = list(
-        list(5, 2010, c("mean")), # Education
-        list(4, 2008:2017, c("mean")), # Agriculture share
-        list(10, 2008:2017, c("mean")), # Industry share
-        list(9, 2012:2017, c("mean")) # Gross capital formation
-      ),
-      treatment.identifier = 4,
-      controls.identifier = sort(unique(df_analysis1.BoP$`Country Code`))[-4],
-      time.predictors.prior = 2007:2017,
-      time.optimize.ssr = 1995:2017,
-      unit.names.variable = 1,
-      time.plot = 1995:2017
-    )
-  
-  # fit main model with v from training model
-  synth.out <- synth(
-    data.prep.obj=dataprep.out,
-    custom.v=as.numeric(synth.out$solution.v)
-  )
-  storage[[i]] <- c(2009+i, synth.out$loss.v)
-  
+    storage[[i]][[1994+j]] <- synth.out$loss.v
+    
+  }
 }
+
 
 # Data setup
 dataprep.out <-
   dataprep(
-    foo = df_analysis2.2010,
-    predictors    = c(7:8, 15, 17),
+    foo = df_analysis1.2010,
+    predictors    = 4:22,
     dependent     = 7,
     unit.variable = 2,
     time.variable = 3,
-    special.predictors = list(
-      list(4, 2008:2017, c("mean")), # Agriculture share
-      list(10, 2008:2017, c("mean")), # Industry share
-      list(9, 2008:2017, c("mean")) # Gross capital formation
-    ),
+    # special.predictors = list(
+    #   list(4, 2008:2017, c("mean")), # Agriculture share
+    #   list(10, 2008:2017, c("mean")), # Industry share
+    #   list(9, 2008:2017, c("mean")) # Gross capital formation
+    # ),
     treatment.identifier = 4,
-    controls.identifier = sort(unique(df_analysis2.BoP$`Country Code`))[-4],
+    controls.identifier = sort(unique(df_analysis1.2010$`Country Code`))[-4],
     time.predictors.prior = 1995:2017,
-    time.optimize.ssr = 2013:2017,
+    time.optimize.ssr = 1995:2017,
     unit.names.variable = 1,
     time.plot = 1995:2017
   )
 
+system.time(
 synth.out <- 
   synth(
     data.prep.obj=dataprep.out,
-    Margin.ipop=.005,Sigf.ipop=7,Bound.ipop=6
-  )
+    optimxmethod = "All",
+    Margin.ipop=.01,Sigf.ipop=7,Bound.ipop=6
+  ))
+
+system.time(
+  synth.out <- 
+    synth(
+      data.prep.obj=dataprep.out,
+      genoud = TRUE,
+      Margin.ipop=.01,Sigf.ipop=7,Bound.ipop=6
+    ))
 
 # Data prep for main model
 dataprep.out <-
   dataprep(
-    foo = df_analysis2.2010,
-    predictors    = c(7:8, 15, 17),
+    foo = df_analysis1.2010,
+    predictors    = 4:22,
     dependent     = 7,
     unit.variable = 2,
     time.variable = 3,
-    special.predictors = list(
-      list(4, 2008:2017, c("mean")), # Agriculture share
-      list(10, 2008:2017, c("mean")), # Industry share
-      list(9, 2008:2017, c("mean")) # Gross capital formation
-    ),
+    # special.predictors = list(
+    #   list(4, 2008:2017, c("mean")), # Agriculture share
+    #   list(10, 2008:2017, c("mean")), # Industry share
+    #   list(9, 2008:2017, c("mean")) # Gross capital formation
+    # ),
     treatment.identifier = 4,
-    controls.identifier = sort(unique(df_analysis2.BoP$`Country Code`))[-4],
+    controls.identifier = sort(unique(df_analysis1.2010$`Country Code`))[-4],
     time.predictors.prior = 2007:2017,
     time.optimize.ssr = 1995:2017,
     unit.names.variable = 1,
