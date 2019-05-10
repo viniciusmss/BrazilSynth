@@ -8,9 +8,9 @@ library(Synth)
 ########################################
 
 # Importing data
-WDI <- read_csv("C:/Users/Vinic/Downloads/Independent Research/WDI v2.csv",
+WDI <- read_csv("C:/Users/Vinic/Research/BrazilSynth/WDI v2.csv",
                na = c("", "NA", ".."))
-BL <- read_csv("C:/Users/Vinic/Downloads/Independent Research/BL v1.csv",
+BL <- read_csv("C:/Users/Vinic/Research/BrazilSynth/BL v1.csv",
                na = c("", "NA", ".."))
 
 # Column names should be the same for rbind
@@ -32,7 +32,7 @@ df_tidy <- df %>%
            drop_na() %>%
            select(-c("Series Code")) %>%
            spread("Series Name", "value") 
-View(df_tidy)
+# View(df_tidy)
 
 # Casting the dataype of columns as numeric
 for (ii in 2:ncol(df_tidy)) {
