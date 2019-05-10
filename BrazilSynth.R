@@ -147,7 +147,14 @@ dfs_list <- list(df_analysis1.2010, df_analysis1.BoP, df_analysis2.2010, df_anal
 
 storage <- list()
 for (i in 1:length(dfs_list)) {
+  
+  storage[[i]] <- list()
+  
   for (j in 1:23) {
+    
+    print(sprintf("Trying data set %d with optimize.ssr starting at %d", i, 1994 + j))
+    sink("NUL")
+    
     # Data setup
     dataprep.out <-
       dataprep(
@@ -192,7 +199,9 @@ for (i in 1:length(dfs_list)) {
       Margin.ipop=.01,Sigf.ipop=7,Bound.ipop=6, 
       custom.v=as.numeric(synth.out$solution.v)
     )
+    
     storage[[i]][[1994+j]] <- synth.out$loss.v
+    sink()
     
   }
 }
@@ -223,17 +232,8 @@ system.time(
 synth.out <- 
   synth(
     data.prep.obj=dataprep.out,
-    optimxmethod = "All",
     Margin.ipop=.01,Sigf.ipop=7,Bound.ipop=6
   ))
-
-system.time(
-  synth.out <- 
-    synth(
-      data.prep.obj=dataprep.out,
-      genoud = TRUE,
-      Margin.ipop=.01,Sigf.ipop=7,Bound.ipop=6
-    ))
 
 # Data prep for main model
 dataprep.out <-
