@@ -147,8 +147,8 @@ df_analysis2.2010 <- as.data.frame(df_analysis2.2010)
 
 dfs_list <- list(df_analysis1.2010, df_analysis1.BoP, df_analysis2.2010, df_analysis2.BoP)
 
-storage <- list()
-for (i in 3:length(dfs_list)) {
+storage <- matrix(nrow = length(dfs_list), ncol = 23)
+for (i in 1:length(dfs_list)) {
   
   storage[[i]] <- list()
   
@@ -202,7 +202,7 @@ for (i in 3:length(dfs_list)) {
       custom.v=as.numeric(synth.out$solution.v)
     )
     
-    storage[[i]][[j]] <- synth.out$loss.v
+    storage[i, j] <- synth.out$loss.v
     sink()
     
   }
