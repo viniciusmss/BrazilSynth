@@ -150,8 +150,6 @@ dfs_list <- list(df_analysis1.2010, df_analysis1.BoP, df_analysis2.2010, df_anal
 storage <- matrix(nrow = length(dfs_list), ncol = 23)
 for (i in 1:length(dfs_list)) {
   
-  storage[[i]] <- list()
-  
   for (j in 1:23) {
     
     print(sprintf("Trying data set %d with optimize.ssr starting at %d", i, 1994 + j))
@@ -230,12 +228,11 @@ dataprep.out <-
     time.plot = 1995:2017
   )
 
-system.time(
 synth.out <- 
   synth(
     data.prep.obj=dataprep.out,
     Margin.ipop=.01,Sigf.ipop=7,Bound.ipop=6
-  ))
+)
 
 # Data prep for main model
 dataprep.out <-
